@@ -1,6 +1,6 @@
 import codecs
 from typing import Optional, Union
-from datetime import datetime, date
+from datetime import datetime, date, time
 from decimal import Decimal
 
 from xml.etree import ElementTree as etree
@@ -328,6 +328,10 @@ class OfxWriter(object):
             return
         if dt is None:
             self.buildText(tag, "", skipEmpty)
+        elif isinstance(dt, datetime) and (
+            dt.time() != time.min or dt.tzinfo is not None
+        ):
+            self.buildDateTime(tag, dt)
         else:
             self.buildText(tag, dt.strftime("%Y%m%d"))
 
@@ -339,7 +343,12 @@ class OfxWriter(object):
         if dt is None:
             self.buildText(tag, "", skipEmpty)
         else:
-            self.buildText(tag, dt.strftime("%Y%m%d%H%M%S"))
+            format = "%Y%m%d%H%M%S"
+            if dt.microsecond or dt.tzinfo:
+                format += f".{(dt.microsecond // 1000):03d}"
+            if dt.tzinfo:
+                format += "[%:z]"
+            self.buildText(tag, dt.strftime(format))
 
     def buildAmount(
         self,
